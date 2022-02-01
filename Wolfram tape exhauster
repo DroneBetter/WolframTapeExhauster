@@ -26,9 +26,9 @@ def findSubsequentTape(tape):
             subsequentTape.append(rule[len(rule)-1-convertToID(tape[(j-bound):(j+bound+1)])])
     if cylindricalTape==1: #this part is inelegant and cheap but no-one needs to know
         if rulestring==150:
-            subsequentTape=[sum([tape[-1],tape[0:1]])%2]+subsequentTape+[sum([tape[-2:-1],tape[0]])%2]
+            subsequentTape=[(tape[-1]+sum(tape[0:2]))%2]+subsequentTape+[(sum(tape[-2:0])+tape[0])%2]
         else:
-            subsequentTape=rule[len(rule)-1-convertToID([tape[-1],tape[0:1]])]+subsequentTape+rule[len(rule)-1-convertToID([tape[-2:-1],tape[0]])] #doesn't seem to allow ranges through the seam
+            subsequentTape=rule[len(rule)-1-convertToID([tape[-1],tape[0:2]])]+subsequentTape+rule[len(rule)-1-convertToID([tape[-2:0],tape[0]])] #doesn't seem to allow ranges through the seam
     else:
         subsequentTape=tape[0:bound]+subsequentTape+tape[(len(tape)-bound):len(tape)]
     return subsequentTape
@@ -46,7 +46,7 @@ def findLoopsPerLength(stateTransitions):
             j=stateTransitions[j]
         if currentLoop.count(j)!=0:
             loopLengths.append(len(currentLoop)-currentLoop.index(j)+1)
-    loopsPerLength=[int(loopLengths.count(i))*(1+(rulestring==150)) for i in range(1,max(loopLengths)+1)]
+    loopsPerLength=[int(loopLengths.count(i))*(1+(rulestring==150 and cylindricalTape==0)) for i in range(1,max(loopLengths)+1)]
     return loopsPerLength
 
 def formatNicely(listToFormat):
@@ -76,7 +76,7 @@ def graphRLE(inputGraph):
                 k=0
             k+=1
         RLE+="$"
-    RLE="#C RLE graph of oscillator periods with respect to length (from 3 to "+str(len(inputGraph)+2)+") in bounded tapes in Wolfram rule "+str(rulestring)+'''
+    RLE="#C RLE graph of oscillator periods with respect to length (from "+str((bound*2+1)*(cylindricalTape==0))+" to "+str(len(inputGraph)+2)+") in bounded tapes in Wolfram rule "+str(rulestring)+'''
 '''+"x = "+str(graphHeight)+", y = "+str(len(inputGraph))+", rule = B3/S23"+'''
 '''+RLE #the rule is a subtle reference to Conway's game of life
     return RLE
@@ -88,7 +88,7 @@ cylindricalTape=int(input("Would you like the tape to be cylindrical? (y/n) ")==
 bound=int((math.log(len(rule),2)-1)/2)
 n=24
 loopsAcrossWidths=[]
-probabilistic=1
+probabilistic=int(input("Would you like a probabilistic search? (y/n) ")=="y")
 if probabilistic==1:
     limit=0
     knownLengths=[]
@@ -108,9 +108,9 @@ if probabilistic==1:
                 knownLengths.append(loopLength)
                 print(loopLength,subsequentTape)
 else:
-    for n in range(bound*2+1,n+1):
+    for n in range((bound*2+1)*(cylindricalTape==0),n+1):
         stateTransitions=[]
-        for i in range(2**(n-(rulestring==150))): #special-case for the rule I'm searching (removes cases where first cell is on to half total computing power because it's its own inverse (I think only satisfied by those that are themselves when flipped tapewise and bitwise))
+        for i in range(2**(n-(rulestring==150 and cylindricalTape==0))): #special-case for the rule I'm searching (removes cases where first cell is on to half total computing power because it's its own inverse (I think only satisfied by those that are themselves when flipped tapewise and bitwise))
             tape=convertToBinList(i,n)
             subsequentTape=findSubsequentTape(tape)
             #print(tape,subsequentTape)
